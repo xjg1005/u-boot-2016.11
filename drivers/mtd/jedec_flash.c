@@ -300,8 +300,8 @@ static const struct amd_flash_info jedec_table[] = {
 	},
 	{
 		.mfr_id		= (u16)AMD_MANUFACT,
-		.dev_id		= AM29LV400BB,
-		.name		= "AMD AM29LV400BB",
+		.dev_id		= AM29F400BB,
+		.name		= "AMD AM29F400BB",
 		.uaddr		= {
 			[1] = MTD_UADDR_0x0555_0x02AA /* x16 */
 		},
@@ -309,10 +309,27 @@ static const struct amd_flash_info jedec_table[] = {
 		.CmdSet		= CFI_CMDSET_AMD_LEGACY,
 		.NumEraseRegions= 4,
 		.regions	= {
+			ERASEINFO(0x04000, 1),
+			ERASEINFO(0x02000, 2),
+			ERASEINFO(0x08000, 1),
+			ERASEINFO(0x10000, 7),
+		}
+	},
+	{
+		.mfr_id		= (u16)AMD_MANUFACT,
+		.dev_id		= AM29LV160DB,
+		.name		= "AMD AM29LV160DB",
+		.uaddr		= {
+			[1] = MTD_UADDR_0x0555_0x02AA /* x16 */
+		},
+		.DevSize	= SIZE_2MiB,
+		.CmdSet		= CFI_CMDSET_AMD_LEGACY,
+		.NumEraseRegions= 4,
+		.regions	= {
 			ERASEINFO(0x04000,1),
 			ERASEINFO(0x02000,2),
 			ERASEINFO(0x08000,1),
-			ERASEINFO(0x10000,7),
+			ERASEINFO(0x10000,31),
 		}
 	},
 	{
