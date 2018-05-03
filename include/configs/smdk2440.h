@@ -35,10 +35,11 @@
 /*
  * Hardware drivers
  */
-#define CONFIG_CS8900		/* we have a CS8900 on-board */
-#define CONFIG_CS8900_BASE	0x19000300
-#define CONFIG_CS8900_BUS16	/* the Linux driver does accesses as shorts */
-
+#define CONFIG_DRIVER_DM9000		/* we have a DM9000 on-board */
+#define CONFIG_DM9000_BASE           0x20000300
+#define DM9000_IO                    CONFIG_DM9000_BASE
+#define DM9000_DATA                  (CONFIG_DM9000_BASE+4)
+#define CONFIG_DM9000_NO_SROM         1
 /*
  * select serial console configuration
  */
@@ -84,6 +85,7 @@
 #define CONFIG_NETMASK		255.255.255.0
 #define CONFIG_IPADDR		10.0.0.110
 #define CONFIG_SERVERIP		10.0.0.1
+#define CONFIG_ETHADDR		88:D7:F6:3C:6B:FF
 
 #if defined(CONFIG_CMD_KGDB)
 #define CONFIG_KGDB_BAUDRATE	115200	/* speed to run kgdb serial port */
@@ -154,7 +156,7 @@
  * NAND configuration
  */
 #ifdef CONFIG_CMD_NAND
-#define CONFIG_NAND_S3C2410
+#define CONFIG_NAND_S3C2440
 #define CONFIG_SYS_S3C2410_NAND_HWECC
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		0x4E000000
