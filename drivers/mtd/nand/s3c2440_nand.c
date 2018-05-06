@@ -11,20 +11,20 @@
 #include <asm/arch/s3c24x0_cpu.h>
 #include <asm/io.h>
 
-#define S3C2410_NFCONF_EN          (1<<15)
-#define S3C2410_NFCONF_512BYTE     (1<<14)
-#define S3C2410_NFCONF_4STEP       (1<<13)
-#define S3C2410_NFCONF_INITECC     (1<<12)
-#define S3C2410_NFCONF_nFCE        (1<<11)
-#define S3C2410_NFCONF_TACLS(x)    ((x)<<12)
-#define S3C2410_NFCONF_TWRPH0(x)   ((x)<<8)
-#define S3C2410_NFCONF_TWRPH1(x)   ((x)<<4)
+#define S3C2440_NFCONF_EN          (1<<15)
+#define S3C2440_NFCONF_512BYTE     (1<<14)
+#define S3C2440_NFCONF_4STEP       (1<<13)
+#define S3C2440_NFCONF_INITECC     (1<<12)
+#define S3C2440_NFCONF_nFCE        (1<<1)
+#define S3C2440_NFCONF_TACLS(x)    ((x)<<12)
+#define S3C2440_NFCONF_TWRPH0(x)   ((x)<<8)
+#define S3C2440_NFCONF_TWRPH1(x)   ((x)<<4)
 
-#define S3C2410_ADDR_NALE 4
-#define S3C2410_ADDR_NCLE 8
-#define _DEBUG  1
+#define S3C2440_ADDR_NALE 8
+#define S3C2440_ADDR_NCLE 12
 
-#define DEBUG    1
+
+//#define _DEBUG    1
 
 #ifdef CONFIG_NAND_SPL
 
@@ -52,17 +52,20 @@ static void s3c24x0_hwcontrol(struct mtd_info *mtd, int cmd, unsigned int ctrl)
 		ulong IO_ADDR_W = (ulong)nand;
 
 		if (!(ctrl & NAND_CLE))
-			IO_ADDR_W |= S3C2410_ADDR_NCLE;
+			IO_ADDR_W |= S3C2440_ADDR_NCLE;
 		if (!(ctrl & NAND_ALE))
-			IO_ADDR_W |= S3C2410_ADDR_NALE;
-
+			IO_ADDR_W |= S3C2440_ADDR_NALE;
+		if(cmd==NAND_CMD_NONE)
+	    {
+	      IO_ADDR_W=&nand->nfdata;
+	    }
 		chip->IO_ADDR_W = (void *)IO_ADDR_W;
 
 		if (ctrl & NAND_NCE)
-			writel(readl(&nand->nfconf) & ~S3C2410_NFCONF_nFCE,
+			writel(readl(&nand->nfconf) & ~S3C2440_NFCONF_nFCE,
 			       &nand->nfconf);
 		else
-			writel(readl(&nand->nfconf) | S3C2410_NFCONF_nFCE,
+			writel(readl(&nand->nfconf) | S3C2440_NFCONF_nFCE,
 			       &nand->nfconf);
 	}
 
@@ -77,12 +80,12 @@ static int s3c24x0_dev_ready(struct mtd_info *mtd)
 	return readl(&nand->nfstat) & 0x01;
 }
 
-#ifdef CONFIG_S3C2410_NAND_HWECC
+#ifdef CONFIG_S3C2440_NAND_HWECC
 void s3c24x0_nand_enable_hwecc(struct mtd_info *mtd, int mode)
 {
 	struct s3c24x0_nand *nand = s3c24x0_get_base_nand();
 	debug("s3c24x0_nand_enable_hwecc(%p, %d)\n", mtd, mode);
-	writel(readl(&nand->nfconf) | S3C2410_NFCONF_INITECC, &nand->nfconf);
+	writel(readl(&nand->nfconf) | S3C2440_NFCONF_INITECC, &nand->nfconf);
 }
 
 static int s3c24x0_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat,
@@ -111,6 +114,25 @@ static int s3c24x0_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 }
 #endif
 
+
+static void s3c2440_nand_select(struct mtd_info *mtd, int chipnr)
+{
+	struct s3c24x0_nand *nand = s3c24x0_get_base_nand();
+
+	switch(chipnr)
+	{
+		case -1:/*取消选中*/
+		nand->nfcont |= (1<<1);
+		break;
+		case 0:
+		nand->nfcont &= ~(1<<1);
+		break;
+		default:
+		BUG();
+	}
+}
+
+
 int board_nand_init(struct nand_chip *nand)
 {
 	u_int32_t cfg;
@@ -128,22 +150,22 @@ int board_nand_init(struct nand_chip *nand)
 	twrph0 = CONFIG_S3C24XX_TWRPH0;
 	twrph1 =  CONFIG_S3C24XX_TWRPH1;
 #else
-	tacls = 4;
-	twrph0 = 8;
-	twrph1 = 8;
+	tacls = 3;
+	twrph0 = 7;
+	twrph1 = 7;
 #endif
 
-	cfg = S3C2410_NFCONF_EN;
-	cfg |= S3C2410_NFCONF_TACLS(tacls - 1);
-	cfg |= S3C2410_NFCONF_TWRPH0(twrph0 - 1);
-	cfg |= S3C2410_NFCONF_TWRPH1(twrph1 - 1);
+	//cfg = S3C2440_NFCONF_EN;
+	cfg |= S3C2440_NFCONF_TACLS(tacls);
+	cfg |= S3C2440_NFCONF_TWRPH0(twrph0);
+	cfg |= S3C2440_NFCONF_TWRPH1(twrph1);
 	writel(cfg, &nand_reg->nfconf);
-
+	writel((1<<4)|(1<<1)|(1<<0),&nand_reg->nfcont);
 	/* initialize nand_chip data structure */
 	nand->IO_ADDR_R = (void *)&nand_reg->nfdata;
 	nand->IO_ADDR_W = (void *)&nand_reg->nfdata;
 
-	nand->select_chip = NULL;
+	nand->select_chip = s3c2440_nand_select;
 
 	/* read_buf and write_buf are default */
 	/* read_byte and write_byte are default */
@@ -156,7 +178,7 @@ int board_nand_init(struct nand_chip *nand)
 
 	nand->dev_ready = s3c24x0_dev_ready;
 
-#ifdef CONFIG_S3C2410_NAND_HWECC
+#ifdef CONFIG_S3C2440_NAND_HWECC
 	nand->ecc.hwctl = s3c24x0_nand_enable_hwecc;
 	nand->ecc.calculate = s3c24x0_nand_calculate_ecc;
 	nand->ecc.correct = s3c24x0_nand_correct_data;
@@ -168,7 +190,7 @@ int board_nand_init(struct nand_chip *nand)
 	nand->ecc.mode = NAND_ECC_SOFT;
 #endif
 
-#ifdef CONFIG_S3C2410_NAND_BBT
+#ifdef CONFIG_S3C2440_NAND_BBT
 	nand->bbt_options |= NAND_BBT_USE_FLASH;
 #endif
 
